@@ -1,0 +1,43 @@
+name: Checkmarx One Security Scan
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch: # Allows manual triggering from the UI
+
+jobs:
+  checkmarx-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write  # Required to upload SARIF results to the Security tab
+      actions: read
+      contents: read
+
+    steps:
+      # Step 1: Check out the repository source code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Run the Checkmarx One Scan
+      - name: Checkmarx One Scan
+        uses: checkmarx/ast-github-action@main
+        with:
+          base_uri: https://ast.checkmarx.net  # Change to your region URL if not US (e.g., https://eu.ast.checkmarx.net)
+          cx_tenant: ${{ secrets.CX_TENANT }}
+          cx_client_id: ${{ secrets.CX_CLIENT_ID }}
+          cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
+          project_name: ${{ github.event.repository.name }}
+          branch: ${{ github.ref_name }}
+          # Generates a report file named cx_result.sarif
+          scan_params: --report-format sarif --output-path .
+
+      # Step 3: Ingest the findings directly into GitHub Advanced Security
+      - name: Upload Scan Results to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() # Ensures results upload even if security flaws are found
+        with:
+          sarif_file: cx_result.sarif
