@@ -13,7 +13,6 @@ jobs:
   checkmarx-scan:
     runs-on: ubuntu-latest
     permissions:
-      security-events: write  # Required to upload SARIF results to the Security tab
       actions: read
       contents: read
 
@@ -32,12 +31,3 @@ jobs:
           cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
           project_name: ${{ github.event.repository.name }}
           branch: ${{ github.ref_name }}
-          # Generates a report file named cx_result.sarif
-          scan_params: --report-format sarif --output-path .
-
-      # Step 3: Ingest the findings directly into GitHub Advanced Security
-      - name: Upload Scan Results to GitHub
-        uses: github/codeql-action/upload-sarif@v3
-        if: always() # Ensures results upload even if security flaws are found
-        with:
-          sarif_file: cx_result.sarif
